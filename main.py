@@ -184,7 +184,7 @@ def refresh_access_token(refresh_request: RefreshTokenRequest, db: Session = Dep
 
 @app.get("/me", response_model=UserProfile)
 def read_users_me(current_user: models.User = Depends(get_current_user)):
-    photo = current_user.photo if current_user.photo != 'null' else "default-profile-photo.png"
+    photo = current_user.photo if current_user.photo else "default-profile-photo.png"
     return UserProfile(
         id=current_user.id,
         full_name=current_user.full_name,
@@ -257,7 +257,7 @@ def read_teachers(db: Session = Depends(get_db)):
             'id': teacher.id,
             'full_name': teacher.full_name,
             'description': teacher.description,
-            'photo': teacher.photo if teacher.photo != 'null' else "default-profile-photo.png",
+            'photo': teacher.photo if teacher.photo else "default-profile-photo.png",
             'registration_date': teacher.registration_date,
             'rating': teacher.average_rating if teacher.average_rating else 0,
             'lessons_amount': teacher.lessons_count if teacher.lessons_count else 0,
