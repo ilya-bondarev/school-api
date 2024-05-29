@@ -12,7 +12,6 @@ class UserBase(BaseModel):
 
     class Config:
         from_attributes=True
-        orm_mode=True
 
 class UserCreate(BaseModel):
     login: EmailStr
@@ -45,7 +44,7 @@ class Teacher(BaseModel):
     registration_date: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class Token(BaseModel):
@@ -56,7 +55,6 @@ class Token(BaseModel):
 
     class Config:
         from_attributes=True
-        orm_mode=True
 
 class TokenData(BaseModel):
     username: Optional[str] = None
@@ -77,13 +75,15 @@ class Block(BaseModel):
 class Lesson(BaseModel):
     id: int
     teacher_id: int
+    teacher: UserProfile
     student_id: int
+    student: UserProfile
     date_time: datetime
     duration: int
     status_id: int
 
     class Config:
-        orm_mode=True
+        from_attributes=True
 
 class LessonCreate(BaseModel):
     teacher_id: int

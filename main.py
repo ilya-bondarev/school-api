@@ -290,7 +290,6 @@ def create_lesson(lesson: LessonCreate, db: Session = Depends(get_db)):
 
 @app.get("/lessons/user/{user_id}", response_model=List[Lesson])
 def read_lessons(user_id: int, db: Session = Depends(get_db)):
-    #TODO: Добавить usernames в ответ чтобы улучшить восприятие
     lessons_query = db.query(
         models.Class
     ).filter(
@@ -301,14 +300,21 @@ def read_lessons(user_id: int, db: Session = Depends(get_db)):
 
     lessons = lessons_query.all()
 
+    user_ids = {lesson.teacher_id for lesson in lessons}.union({lesson.student_id for lesson in lessons})
+    user_roles = db.query(models.User).filter(models.User.id.in_(user_ids)).all()
+
+    user_map = {user.id: user for user in user_roles}
+
     result = [
         {
-            'id':lesson.id,
-            'teacher_id':lesson.teacher_id,
-            'student_id':lesson.student_id,
-            'date_time':lesson.date_time,
-            'duration':lesson.duration,
-            'status_id':lesson.status_id,
+            'id': lesson.id,
+            'teacher_id': lesson.teacher_id,
+            'teacher': user_map[lesson.teacher_id],
+            'student_id': lesson.student_id,
+            'student': user_map[lesson.student_id],
+            'date_time': lesson.date_time,
+            'duration': lesson.duration,
+            'status_id': lesson.status_id,
         }
         for lesson in lessons
     ]
