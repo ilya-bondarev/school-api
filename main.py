@@ -257,7 +257,7 @@ def read_teachers(db: Session = Depends(get_db)):
             'id': teacher.id,
             'full_name': teacher.full_name,
             'description': teacher.description,
-            'photo': teacher.photo if teacher.photo else "default-profile-photo.png",
+            'photo': teacher.photo,
             'registration_date': teacher.registration_date,
             'rating': teacher.average_rating if teacher.average_rating else 0,
             'lessons_amount': teacher.lessons_count if teacher.lessons_count else 0,
