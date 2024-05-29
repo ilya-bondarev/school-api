@@ -184,14 +184,13 @@ def refresh_access_token(refresh_request: RefreshTokenRequest, db: Session = Dep
 
 @app.get("/me", response_model=UserProfile)
 def read_users_me(current_user: models.User = Depends(get_current_user)):
-    photo = current_user.photo if current_user.photo else "default-profile-photo.png"
     return UserProfile(
         id=current_user.id,
         full_name=current_user.full_name,
         login=current_user.login,
         role_id=current_user.role_id,
         registration_date=current_user.registration_date,
-        photo=photo,
+        photo=current_user.photo,
         description=current_user.description
     )
 
