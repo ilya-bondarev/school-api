@@ -332,6 +332,8 @@ async def upload_profile_photo(file: UploadFile = File(...)):
 
 @app.get("/profile-photo/{filename}")
 async def get_profile_photo(filename: str):
+    if filename == "null":
+        filename = "null.png"
     file_path = os.path.join(Config.IMAGE_UPLOAD_DIR, filename)
     if not os.path.isfile(file_path):
         raise HTTPException(status_code=404, detail="File not found")
