@@ -34,6 +34,6 @@ def decode_token(token: str):
         username = payload.get("sub")
         if username is None:
             return None
-        return payload  # Возвращаем весь payload для получения типа токена и других данных
+        return payload  # Return the entire payload to obtain the token type and other data
     except JWTError:
         return None

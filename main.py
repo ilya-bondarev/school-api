@@ -99,7 +99,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
         
-        # Проверка истечения срока действия токена
+        # Token expiration check
         if datetime.fromtimestamp(payload["exp"]) < datetime.now():
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
         
@@ -165,7 +165,7 @@ def refresh_access_token(refresh_request: RefreshTokenRequest, db: Session = Dep
         if username is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
-        # Проверка истечения срока действия токена
+        # Token expiration check
         if datetime.fromtimestamp(payload["exp"]) < datetime.now():
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token has expired")
 
@@ -174,7 +174,7 @@ def refresh_access_token(refresh_request: RefreshTokenRequest, db: Session = Dep
         expires = datetime.now() + access_token_expires
         return {
             "access_token": access_token,
-            "refresh_token": refresh_request.refresh_token,  # Возвращаем тот же refresh token
+            "refresh_token": refresh_request.refresh_token,  # Return the same refresh token
             "token_type": "bearer",
             "expires": expires
         }
