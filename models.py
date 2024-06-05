@@ -85,36 +85,4 @@ class LessonHistory(Base):
     lesson_board_id = Column(Integer, ForeignKey('lesson_boards.id'))
     lesson_board = relationship("LessonBoard", backref=backref("lesson_histories", cascade="all, delete-orphan"))
 
-#TODO: Реализовать реферальную систему и расписание
-class ReferralType(Base):
-    __tablename__ = 'referral_types'
-    id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=False)
-    bonus_amount = Column(DECIMAL(10,2), nullable=False)
-    bonus_type = Column(String(255), nullable=False)
-    condition_size = Column(DECIMAL(10,2), nullable=False)
-    condition_type = Column(String(255), nullable=False)
-
-class InvitationCode(Base):
-    __tablename__ = 'invitation_codes'
-    id = Column(Integer, primary_key=True)
-    link = Column(Text, nullable=False)
-    author_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-
-class Referral(Base):
-    __tablename__ = 'referrals'
-    id = Column(Integer, primary_key=True) # InvitationCode id
-    invited_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    referral_type_id = Column(Integer, ForeignKey('referral_types.id'), nullable=False)
-    condition_fulfillment_date = Column(TIMESTAMP)
-    status = Column(String(255), nullable=False)
-
-class PromoCode(Base):
-    __tablename__ = 'promo_codes'
-    id = Column(Integer, primary_key=True)
-    owner_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    promo_code_type = Column(String(255), nullable=False)
-    discount = Column(DECIMAL(10,2), nullable=False)
-    payout_amount = Column(DECIMAL(10,2))
-    number_of_lessons = Column(Integer)
-
+#TODO: Реализовать расписание
