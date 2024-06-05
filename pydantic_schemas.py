@@ -33,6 +33,9 @@ class UserProfile(BaseModel):
     registration_date: datetime
     photo: str
     description: str
+    
+    class Config:
+        from_attributes = True
 
 class Teacher(BaseModel):
     id: int
@@ -90,6 +93,9 @@ class LessonCreate(BaseModel):
     student_id: int
     date_time: datetime
     duration: int
+    status_id: int
+
+class LessonUpdateStatus(BaseModel):
     status_id: int
 
 class TeacherFiles():

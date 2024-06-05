@@ -7,7 +7,7 @@ from fastapi import FastAPI, Form, HTTPException, Depends, WebSocket, WebSocketD
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic_schemas import UserCreate, Token, RefreshTokenRequest, UserLogIn, UserProfile, Block, Teacher, LessonCreate, Lesson
+from pydantic_schemas import LessonUpdateStatus, UserCreate, Token, RefreshTokenRequest, UserLogIn, UserProfile, Block, Teacher, LessonCreate, Lesson
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy import func, or_, select
 from jose import JWTError
@@ -272,7 +272,7 @@ def create_lesson(lesson: LessonCreate, db: Session = Depends(get_db)):
     student = db.get(models.User, lesson.student_id)
     
     if not teacher or not student:
-        raise HTTPException(status_code=404, detail="Teacher, student, or status not found")
+        raise HTTPException(status_code=404, detail="Teacher or student not found")
     
     new_lesson = models.Class(
         teacher_id=lesson.teacher_id,
@@ -309,9 +309,9 @@ def read_lessons(user_id: int, db: Session = Depends(get_db)):
         {
             'id': lesson.id,
             'teacher_id': lesson.teacher_id,
-            'teacher': user_map[lesson.teacher_id],
+            'teacher': UserProfile.model_validate(user_map[lesson.teacher_id]),
             'student_id': lesson.student_id,
-            'student': user_map[lesson.student_id],
+            'student': UserProfile.model_validate(user_map[lesson.student_id]),
             'date_time': lesson.date_time,
             'duration': lesson.duration,
             'status_id': lesson.status_id,
@@ -319,6 +319,57 @@ def read_lessons(user_id: int, db: Session = Depends(get_db)):
         for lesson in lessons
     ]
 
+    return result
+
+@app.put("/lessons/{lesson_id}/status", response_model=Lesson)
+def update_lesson_status(lesson_id: int, status_update: LessonUpdateStatus, db: Session = Depends(get_db)):
+    lesson = db.get(models.Class, lesson_id)
+    
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    
+    lesson.status_id = status_update.status_id
+    db.commit()
+    db.refresh(lesson)
+
+    teacher = db.get(models.User, lesson.teacher_id)
+    student = db.get(models.User, lesson.student_id)
+
+    return Lesson(
+        id=lesson.id,
+        teacher_id=lesson.teacher_id,
+        teacher=UserProfile.model_validate(teacher),
+        student_id=lesson.student_id,
+        student=UserProfile.model_validate(student),
+        date_time=lesson.date_time,
+        duration=lesson.duration,
+        status_id=lesson.status_id,
+    )
+
+@app.get("/lessons/status/{status_id}", response_model=List[Lesson])
+def get_lessons_by_status(status_id: int, db: Session = Depends(get_db)):
+    lessons_query = db.query(models.Class).filter(models.Class.status_id == status_id).order_by(models.Class.date_time.asc())
+    
+    lessons = lessons_query.all()
+    
+    user_ids = {lesson.teacher_id for lesson in lessons}.union({lesson.student_id for lesson in lessons})
+    user_roles = db.query(models.User).filter(models.User.id.in_(user_ids)).all()
+    user_map = {user.id: user for user in user_roles}
+    
+    result = [
+        {
+            'id': lesson.id,
+            'teacher_id': lesson.teacher_id,
+            'teacher': UserProfile.model_validate(user_map[lesson.teacher_id]),
+            'student_id': lesson.student_id,
+            'student': UserProfile.model_validate(user_map[lesson.student_id]),
+            'date_time': lesson.date_time,
+            'duration': lesson.duration,
+            'status_id': lesson.status_id,
+        }
+        for lesson in lessons
+    ]
+    
     return result
 
 @app.post("/upload-profile-photo/")
