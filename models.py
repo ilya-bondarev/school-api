@@ -75,14 +75,4 @@ class LessonBoard(Base):
     title = Column(String(255), nullable=False)
     link = Column(Text, nullable=False)
 
-class LessonHistory(Base):
-    __tablename__ = 'lesson_history'
-    id = Column(Integer, primary_key=True)
-    lesson_id = Column(Integer)
-    teacher_comment = Column(Text)
-    student_assessment = Column(Integer, CheckConstraint('student_assessment >= 1 AND student_assessment <= 5'))
-    student_wishes = Column(Text)
-    lesson_board_id = Column(Integer, ForeignKey('lesson_boards.id'))
-    lesson_board = relationship("LessonBoard", backref=backref("lesson_histories", cascade="all, delete-orphan"))
-
 #TODO: Реализовать расписание

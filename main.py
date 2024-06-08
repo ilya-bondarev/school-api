@@ -1,3 +1,4 @@
+import json
 import os
 import uuid
 from pathlib import Path
@@ -40,7 +41,7 @@ class Board:
         self.connections.remove(websocket)
 
     async def send_update_blocks(self):
-        data = {"type": "update_blocks", "blocks": [block.dict() for block in self.blocks.values()]}
+        data = {"type": "update_blocks", "blocks": [block.model_dump() for block in self.blocks.values()]}
         await self.broadcast(data)
 
     async def broadcast(self, message: dict):
@@ -231,9 +232,14 @@ def read_teachers(db: Session = Depends(get_db)):
     ).group_by(models.Review.teacher_id).subquery()
 
     subquery_lessons = db.query(
-        models.LessonHistory.lesson_id,
-        func.count(models.LessonHistory.lesson_id).label('lessons_count')
-    ).group_by(models.LessonHistory.lesson_id).subquery()
+        models.Class.id.label('lesson_id'),
+        func.count(models.Class.id).label('lessons_count')
+    ).filter(
+        models.Class.status_id == 3
+    ).group_by(
+        models.Class.id
+    ).subquery()
+
 
     teachers = db.query(
         models.User.id,
@@ -371,6 +377,61 @@ def get_lessons_by_status(status_id: int, db: Session = Depends(get_db)):
     ]
 
     return result
+
+@app.post("/save-lesson/{lesson_id}")
+async def save_lesson(lesson_id: int, db: Session = Depends(get_db)):
+    board = boards.get(lesson_id)
+    if not board:
+        raise HTTPException(status_code=404, detail="Lesson board not found")
+
+    # Update the lesson status to 3 (ended)
+    lesson = db.get(models.Class, lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    lesson.status_id = 3
+    db.commit()
+    db.refresh(lesson)
+
+    # Ensure the directory exists
+    os.makedirs(Config.BOARD_SAVE_DIR, exist_ok=True)
+
+    # Save the lesson board
+    lesson_board = db.query(models.LessonBoard).filter(models.LessonBoard.id == lesson_id).first()
+    if not lesson_board:
+        lesson_board = models.LessonBoard(id=lesson_id, title=f"Lesson {datetime.now()}", link=f"{lesson_id}_{uuid.uuid4()}")
+        db.add(lesson_board)
+        db.commit()
+        db.refresh(lesson_board)
+
+    state_file_path = os.path.join(Config.BOARD_SAVE_DIR, f"{lesson_board.link}.json")
+    with open(state_file_path, "w") as state_file:
+        json.dump([block.model_dump() for block in board.blocks.values()], state_file)
+
+    return JSONResponse(content={"message": "Lesson status updated to 3 and state saved successfully"})
+
+@app.get("/load-lesson/{lesson_id}")
+async def load_lesson(lesson_id: int, db: Session = Depends(get_db)):
+    lesson_board = db.query(models.LessonBoard).filter(models.LessonBoard.id == lesson_id).first()
+    if not lesson_board:
+        raise HTTPException(status_code=404, detail="Lesson board not found")
+
+    state_file_path = os.path.join(Config.BOARD_SAVE_DIR, f"{lesson_board.link}.json")
+    if not os.path.isfile(state_file_path):
+        raise HTTPException(status_code=404, detail="Lesson state not found")
+
+    with open(state_file_path, "r") as state_file:
+        blocks_data = json.load(state_file)
+
+    board = boards.get(lesson_id)
+    if not board:
+        board = Board()
+        boards[lesson_id] = board
+
+    board.blocks = {block_data['id']: Block(**block_data) for block_data in blocks_data}
+    await board.send_update_blocks()
+
+    return JSONResponse(content={"message": "Lesson state loaded successfully", "blocks": blocks_data})
+
 
 @app.post("/upload-profile-photo/")
 async def upload_profile_photo(file: UploadFile = File(...)):

@@ -15,3 +15,4 @@ class Config:
 
     IMAGE_UPLOAD_DIR = "uploaded/img"
     FILES_UPLOAD_DIR = "uploaded/teachers"
+    BOARD_SAVE_DIR = "uploaded/boards"
