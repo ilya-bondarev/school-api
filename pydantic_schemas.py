@@ -33,7 +33,7 @@ class UserProfile(BaseModel):
     registration_date: datetime
     photo: str
     description: str
-    
+
     class Config:
         from_attributes = True
 
@@ -45,7 +45,7 @@ class Teacher(BaseModel):
     lessons_amount: int = Field(default=0)
     rating: float = Field(default=5.0)
     registration_date: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -74,6 +74,7 @@ class Block(BaseModel):
     content: str = ""
     contentType: str
     contentUrl: str = ""
+    pageNumber: int = 1
 
 class Lesson(BaseModel):
     id: int

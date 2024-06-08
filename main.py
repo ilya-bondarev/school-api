@@ -90,19 +90,19 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         payload = auth.decode_token(token)
         if payload is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-        
+
         username = payload.get("sub")
         if username is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-        
+
         user = db.query(models.User).filter(models.User.login == username).first()
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
-        
+
         # Token expiration check
         if datetime.fromtimestamp(payload["exp"]) < datetime.now():
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
-        
+
         return user
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
@@ -111,11 +111,11 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     hashed_password = auth.get_password_hash(user.password)
     db_user = models.User(
-        login=user.login, 
-        password=hashed_password, 
-        full_name=user.full_name, 
-        photo=user.photo, 
-        description=user.description, 
+        login=user.login,
+        password=hashed_password,
+        full_name=user.full_name,
+        photo=user.photo,
+        description=user.description,
         role_id=user.role_id
     )
     db.add(db_user)
@@ -127,7 +127,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 async def update_profile(
     full_name: str = Form(...),
     description: str = Form(...),
-    photo: str = Form(None), 
+    photo: str = Form(None),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -205,7 +205,7 @@ async def websocket_endpoint(websocket: WebSocket, board_id: int):
             data = await websocket.receive_json()
             action = data.get('type')
             block_data = data.get('data')
-            if action in ['add_block', 'move_block', 'resize_block', 'update_content'] and block_data:
+            if action in ['add_block', 'move_block', 'resize_block', 'update_content', 'update_page_number'] and block_data:
                 try:
                     block = Block(**block_data)
                     await board.receive_block_update(block)
@@ -270,10 +270,10 @@ def read_teachers(db: Session = Depends(get_db)):
 def create_lesson(lesson: LessonCreate, db: Session = Depends(get_db)):
     teacher = db.get(models.User, lesson.teacher_id)
     student = db.get(models.User, lesson.student_id)
-    
+
     if not teacher or not student:
         raise HTTPException(status_code=404, detail="Teacher or student not found")
-    
+
     new_lesson = models.Class(
         teacher_id=lesson.teacher_id,
         student_id=lesson.student_id,
@@ -281,11 +281,11 @@ def create_lesson(lesson: LessonCreate, db: Session = Depends(get_db)):
         duration=lesson.duration,
         status_id=lesson.status_id,
     )
-    
+
     db.add(new_lesson)
     db.commit()
     db.refresh(new_lesson)
-    
+
     return new_lesson.id
 
 @app.get("/lessons/user/{user_id}", response_model=List[Lesson])
@@ -324,10 +324,10 @@ def read_lessons(user_id: int, db: Session = Depends(get_db)):
 @app.put("/lessons/{lesson_id}/status", response_model=Lesson)
 def update_lesson_status(lesson_id: int, status_update: LessonUpdateStatus, db: Session = Depends(get_db)):
     lesson = db.get(models.Class, lesson_id)
-    
+
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
-    
+
     lesson.status_id = status_update.status_id
     db.commit()
     db.refresh(lesson)
@@ -349,13 +349,13 @@ def update_lesson_status(lesson_id: int, status_update: LessonUpdateStatus, db: 
 @app.get("/lessons/status/{status_id}", response_model=List[Lesson])
 def get_lessons_by_status(status_id: int, db: Session = Depends(get_db)):
     lessons_query = db.query(models.Class).filter(models.Class.status_id == status_id).order_by(models.Class.date_time.asc())
-    
+
     lessons = lessons_query.all()
-    
+
     user_ids = {lesson.teacher_id for lesson in lessons}.union({lesson.student_id for lesson in lessons})
     user_roles = db.query(models.User).filter(models.User.id.in_(user_ids)).all()
     user_map = {user.id: user for user in user_roles}
-    
+
     result = [
         {
             'id': lesson.id,
@@ -369,7 +369,7 @@ def get_lessons_by_status(status_id: int, db: Session = Depends(get_db)):
         }
         for lesson in lessons
     ]
-    
+
     return result
 
 @app.post("/upload-profile-photo/")
@@ -437,5 +437,5 @@ async def read_file(teacher_id: int, file_name: str):
     file_path = Path(os.path.join(Config.FILES_UPLOAD_DIR, str(teacher_id), file_name))
     if not file_path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
-    
+
     return FileResponse(file_path)
