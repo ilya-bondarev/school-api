@@ -26,34 +26,6 @@ class User(Base):
     role_id = Column(Integer, ForeignKey('roles.id'), nullable=False)
     role = relationship("Role", backref=backref("users", cascade="all, delete-orphan"))
 
-class Language(Base):
-    __tablename__ = 'languages'
-    id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=False)
-    code = Column(String(3), unique=True, nullable=False)
-    is_on_platform = Column(Boolean, nullable=False)
-
-class Certificate(Base):
-    __tablename__ = 'certificates'
-    id = Column(Integer, primary_key=True)
-    teacher_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    link = Column(Text, nullable=False)
-
-class ProfileVideo(Base):
-    __tablename__ = 'profile_videos'
-    id = Column(Integer, primary_key=True)
-    teacher_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    link = Column(Text, nullable=False)
-
-class Review(Base):
-    __tablename__ = 'reviews'
-    id = Column(Integer, primary_key=True)
-    teacher_id = Column(Integer, ForeignKey('users.id'))
-    student_id = Column(Integer, ForeignKey('users.id'))
-    language_id = Column(Integer, ForeignKey('languages.id'))
-    rating = Column(Integer, CheckConstraint('rating >= 1 AND rating <= 5'))
-    comment = Column(Text)
-
 class Status(Base):
     __tablename__ = 'statuses'
     id = Column(Integer, primary_key=True)
@@ -74,5 +46,3 @@ class LessonBoard(Base):
     id = Column(Integer, primary_key=True)
     title = Column(String(255), nullable=False)
     link = Column(Text, nullable=False)
-
-#TODO: Реализовать расписание

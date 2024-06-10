@@ -226,20 +226,14 @@ async def websocket_endpoint(websocket: WebSocket, board_id: int):
 
 @app.get("/teachers", response_model=List[Teacher])
 def read_teachers(db: Session = Depends(get_db)):
-    subquery_review = db.query(
-        models.Review.teacher_id,
-        func.avg(models.Review.rating).label('average_rating')
-    ).group_by(models.Review.teacher_id).subquery()
-
     subquery_lessons = db.query(
-        models.Class.id.label('lesson_id'),
+        models.Class.teacher_id.label('teacher_id'),
         func.count(models.Class.id).label('lessons_count')
     ).filter(
         models.Class.status_id == 3
     ).group_by(
-        models.Class.id
+        models.Class.teacher_id
     ).subquery()
-
 
     teachers = db.query(
         models.User.id,
@@ -247,12 +241,9 @@ def read_teachers(db: Session = Depends(get_db)):
         models.User.description,
         models.User.photo,
         models.User.registration_date,
-        subquery_review.c.average_rating,
         subquery_lessons.c.lessons_count
     ).join(
-        subquery_review, models.User.id == subquery_review.c.teacher_id, isouter=True
-    ).join(
-        subquery_lessons, models.User.id == subquery_lessons.c.lesson_id, isouter=True
+        subquery_lessons, models.User.id == subquery_lessons.c.teacher_id, isouter=True
     ).filter(
         models.User.role_id == 2
     ).all()
@@ -264,13 +255,13 @@ def read_teachers(db: Session = Depends(get_db)):
             'description': teacher.description,
             'photo': teacher.photo,
             'registration_date': teacher.registration_date,
-            'rating': teacher.average_rating if teacher.average_rating else 0,
             'lessons_amount': teacher.lessons_count if teacher.lessons_count else 0,
         }
         for teacher in teachers
     ]
 
     return result
+
 
 @app.post("/lessons/", response_model=int)
 def create_lesson(lesson: LessonCreate, db: Session = Depends(get_db)):
@@ -456,23 +447,6 @@ async def get_profile_photo(filename: str):
     if not os.path.isfile(file_path):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(file_path)
-
-
-@app.post("/upload-certificates/")
-async def upload_certificates(file: UploadFile = File(...)):
-    #TODO: Write data about this into db
-    valid_extensions = {"jpg", "jpeg", "png", "pdf"}
-    filename = file.filename
-    file_extension = filename.split(".")[-1].lower()
-
-    if file_extension not in valid_extensions:
-        raise HTTPException(status_code=400, detail="Invalid file extension")
-    new_filename = f"{uuid.uuid4()}.{file_extension}"
-    file_path = os.path.join(Config.IMAGE_UPLOAD_DIR, new_filename)
-    with open(file_path, "wb") as buffer:
-        buffer.write(await file.read())
-
-    return {"filename": new_filename}
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...), current_user: models.User = Depends(get_current_user)):

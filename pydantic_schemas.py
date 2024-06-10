@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, constr, Field
+from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 from typing import Optional
 
@@ -43,7 +43,6 @@ class Teacher(BaseModel):
     description: Optional[str]
     photo: Optional[str]
     lessons_amount: int = Field(default=0)
-    rating: float = Field(default=5.0)
     registration_date: datetime
 
     class Config:
